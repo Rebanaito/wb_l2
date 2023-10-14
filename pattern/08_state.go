@@ -127,24 +127,24 @@ func (pizza *ready) eat() error {
 	return nil
 }
 
-func main() {
-	margarita := &pizza{}
-	noPizza := &noPizza{pizza: margarita}
-	coldStove := &coldStove{pizza: margarita}
-	coldPizza := &coldPizza{pizza: margarita}
-	ready := &ready{pizza: margarita}
-	margarita.noPizza = noPizza
-	margarita.coldStove = coldStove
-	margarita.coldPizza = coldPizza
-	margarita.ready = ready
-	margarita.currentState = margarita.noPizza
-	fmt.Println(margarita.eat())
-	margarita.preparePizza()
-	margarita.heatUpStove()
-	fmt.Println(margarita.eat())
-	margarita.cook()
-	fmt.Println(margarita.eat())
-	margarita.cook()
-	margarita.cook()
-	margarita.eat()
-}
+// func main() {
+// 	margarita := &pizza{}
+// 	noPizza := &noPizza{pizza: margarita}
+// 	coldStove := &coldStove{pizza: margarita}
+// 	coldPizza := &coldPizza{pizza: margarita}
+// 	ready := &ready{pizza: margarita}
+// 	margarita.noPizza = noPizza
+// 	margarita.coldStove = coldStove
+// 	margarita.coldPizza = coldPizza
+// 	margarita.ready = ready
+// 	margarita.currentState = margarita.noPizza
+// 	fmt.Println(margarita.eat())
+// 	margarita.preparePizza()
+// 	margarita.heatUpStove()
+// 	fmt.Println(margarita.eat())
+// 	margarita.cook()
+// 	fmt.Println(margarita.eat())
+// 	margarita.cook()
+// 	margarita.cook()
+// 	margarita.eat()
+// }
