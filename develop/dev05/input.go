@@ -55,7 +55,7 @@ func parseArgs(argv []string) ([]string, []string, error) {
 			if i == len(argv)-1 {
 				return nil, nil, errors.New("-f requires a string argument")
 			}
-			patterns = append(patternFiles, argv[i+1])
+			patternFiles = append(patternFiles, argv[i+1])
 			i += 1
 		case "-c":
 			flags.c = true
@@ -75,8 +75,19 @@ func parseArgs(argv []string) ([]string, []string, error) {
 		}
 		i += 1
 	}
-	if len(targetFiles) != 0 {
+	if len(patternFiles) != 0 {
 		parseFiles(&patterns, patternFiles)
+	}
+	if len(patterns) == 0 && len(targetFiles) > 1 {
+		patterns = append(patterns, targetFiles[0])
+		targetFiles = targetFiles[1:]
+	} else if len(patterns) == 0 || len(targetFiles) == 0 {
+		return nil, nil, errors.New("invalid format")
+	}
+	if flags.i {
+		for i := range patterns {
+			patterns[i] = strings.ToLower(patterns[i])
+		}
 	}
 	return targetFiles, patterns, nil
 }
