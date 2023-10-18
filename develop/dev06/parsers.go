@@ -18,12 +18,14 @@ func parseArgs(argv []string) []string {
 				os.Exit(1)
 			}
 			parseList(argv[i+1])
+			i += 1
 		case "-d":
 			if i == len(argv)-1 {
 				fmt.Fprint(os.Stderr, "-d: needs a string as an argument)\n")
 				os.Exit(1)
 			}
 			flags.d = argv[i+1]
+			i += 1
 		case "-s":
 			flags.s = true
 		default:
