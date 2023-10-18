@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"os/user"
 	"strings"
 )
 
@@ -12,7 +14,14 @@ var reader = bufio.NewReader(os.Stdin)
 var writer = bufio.NewWriter(os.Stdout)
 
 func main() {
+	clear := exec.Command("clear")
+	clear.Stdout = os.Stdout
+	clear.Run()
 	for {
+		username, _ := user.Current()
+		hostname, _ := os.Hostname()
+		pwd, _ := os.Getwd()
+		fmt.Printf("г---(%s@%s)-[%s]\nL-$ ", username.Username, hostname, pwd)
 		input, err := reader.ReadString('\n')
 		if err == io.EOF || input == "\\exit\n" {
 			break
@@ -21,8 +30,10 @@ func main() {
 			break
 		}
 		processInput(input[:len(input)-1])
+		fmt.Fprintln(writer)
 		writer.Flush()
 	}
+	clear.Run()
 }
 
 func processInput(input string) {
@@ -33,46 +44,9 @@ func processInput(input string) {
 		if len(argv) == 0 {
 			return
 		}
-		processCommand(argv)
+		command := exec.Command("/usr/bin/"+argv[0], argv[1:]...)
+		command.Stdout = writer
+		command.Stderr = os.Stderr
+		command.Run()
 	}
-}
-
-func processCommand(argv []string) {
-	switch argv[0] {
-	case "echo":
-		echo(argv)
-	case "pwd":
-		pwd(argv)
-	case "cd":
-		cd(argv)
-	case "kill":
-		kill(argv)
-	case "ps":
-		ps(argv)
-	default:
-		fmt.Fprintf(os.Stderr, "%s: command not found", argv[0])
-	}
-}
-
-func pwd(argv []string) {
-	if len(argv) != 1 {
-		fmt.Fprintf(os.Stderr, "pwd: too many arguments\n")
-		return
-	}
-	dir, err := os.Getwd()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	} else {
-		fmt.Fprintln(writer, dir)
-	}
-}
-
-func echo(argv []string) {
-	for i := 1; i < len(argv); i++ {
-		if i != 1 {
-			fmt.Fprint(writer, " ")
-		}
-		fmt.Fprint(writer, argv[i])
-	}
-	fmt.Fprintln(writer)
 }
