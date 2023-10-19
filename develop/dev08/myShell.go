@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"os/user"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 var reader = bufio.NewReader(os.Stdin)
@@ -20,10 +22,7 @@ func main() {
 	clear.Stdout = os.Stdout
 	clear.Run()
 	for {
-		username, _ := user.Current()
-		hostname, _ := os.Hostname()
-		pwd, _ := os.Getwd()
-		fmt.Printf("г---(%s@%s)-[%s]\nL-$ ", username.Username, hostname, pwd)
+		printPrompt()
 		input, err := reader.ReadString('\n')
 		if err == io.EOF || input == "\\exit\n" {
 			break
@@ -53,7 +52,6 @@ func processInput(input string) {
 }
 
 func processPipes(input string) {
-	fmt.Println(input)
 	pipes := splitWithQuotes(input, '|')
 	commands := make([]*exec.Cmd, len(pipes))
 	for i := range pipes {
@@ -86,4 +84,12 @@ func splitWithQuotes(input string, sep rune) []string {
 		return nil
 	}
 	return args
+}
+
+func printPrompt() {
+	username, _ := user.Current()
+	hostname, _ := os.Hostname()
+	pwd, _ := os.Getwd()
+	fmt.Printf("%s%s%s%s%s%s", color.HiCyanString("┌──("), color.HiYellowString(username.Username+"@"+hostname),
+		color.HiCyanString(")-["), color.HiBlueString(pwd), color.HiCyanString("]\n└─"), color.HiYellowString("$ "))
 }
