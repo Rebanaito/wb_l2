@@ -206,11 +206,7 @@ func parseFilename(target string) (filename string, err error) {
 		pwd, _ := os.Getwd()
 		defer os.Chdir(pwd)
 		for i := 0; i < len(split)-1; i++ {
-			err := os.Mkdir(split[i], 0777)
-			if err != nil {
-				fmt.Fprint(os.Stderr, err)
-				return "", err
-			}
+			os.Mkdir(split[i], 0777)
 			os.Chdir(split[i])
 		}
 	}
