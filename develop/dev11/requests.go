@@ -29,12 +29,20 @@ const DAY_TEMPLATE_WITH_COMMENT string = `<table><tr>
 </tr>
 <tr>
 <td>%s</td>
-</tr></table>`
+</tr></table>
+<form action="/update_event_form" method="post">
+	<input id="uuid" type="hidden" name="uuid" value="%s">
+	<button>Update event</button>
+</form>`
 
 const DAY_TEMPLATE_NO_COMMENT string = `<table><tr>
 <th>%02d:%02d - %02d:%02d %s</th>
 </tr>
-</table>`
+</table>
+<form action="/update_event_form" method="post">
+	<input id="uuid" type="hidden" name="uuid" value="%s">
+	<button>Update event</button>
+</form>`
 
 const WEEK_TEMPLATE string = `<table>
 <tr><th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th><th>Saturday</th><th>Sunday</th></tr>
@@ -42,7 +50,7 @@ const WEEK_TEMPLATE string = `<table>
 <tr></tr>
 </table>`
 
-const CREATE_EVENT_TEMPLATE string = `<form action="/create_event" method="post">
+const CREATE_EVENT_TEMPLATE string = `<h2>Add new event:</h2><br><form action="/create_event" method="post">
 <label for="start-time">Event start time: </label>
 <input id="start-time" type="time" name="start-time" value="12:00" /><br>
 <label for="end-time">Event end time: </label>
@@ -51,6 +59,19 @@ const CREATE_EVENT_TEMPLATE string = `<form action="/create_event" method="post"
 <input id="event-name" type="text" name="event-name" value="New event" /><br>
 <label for="start-time">Comment: </label>
 <input id="comment" type="text" name="comment"/>
+<input type="submit" value="Submit">
+</form></html>`
+
+const UPDATE_EVENT_TEMPLATE string = `<h2>Update this event:</h2><br><form action="/update_event" method="post">
+<label for="start-time">Event start time: </label>
+<input id="start-time" type="time" name="start-time" value="12:00" /><br>
+<label for="end-time">Event end time: </label>
+<input id="end-time" type="time" name="end-time" value="12:00" /><br>
+<label for="event-name">Event name: </label>
+<input id="event-name" type="text" name="event-name" value="New event" /><br>
+<label for="start-time">Comment: </label>
+<input id="comment" type="text" name="comment"/>
+<input id="uuid" type="hidden" name="uuid" value="%s">
 <input type="submit" value="Submit">
 </form></html>`
 
@@ -65,10 +86,10 @@ func (c calendar) events_for_day(w http.ResponseWriter) {
 		var new string
 		if dayEvents.comment != "" {
 			new = fmt.Sprintf(DAY_TEMPLATE_WITH_COMMENT, dayEvents.startTime.Hour(), dayEvents.startTime.Minute(),
-				dayEvents.endTime.Hour(), dayEvents.endTime.Minute(), dayEvents.name, dayEvents.comment)
+				dayEvents.endTime.Hour(), dayEvents.endTime.Minute(), dayEvents.name, dayEvents.comment, dayEvents.uuid)
 		} else {
 			new = fmt.Sprintf(DAY_TEMPLATE_NO_COMMENT, dayEvents.startTime.Hour(), dayEvents.startTime.Minute(),
-				dayEvents.endTime.Hour(), dayEvents.endTime.Minute(), dayEvents.name)
+				dayEvents.endTime.Hour(), dayEvents.endTime.Minute(), dayEvents.name, dayEvents.uuid)
 		}
 		data = string(append([]byte(data), []byte(new)...))
 		dayEvents = dayEvents.next
@@ -102,6 +123,26 @@ func (c calendar) update_event(w http.ResponseWriter, r *http.Request) {
 	uuid := r.FormValue("uuid")
 	c.years[CURRENT_YEAR-c.firstYear].months[CURRENT_MONTH].days[CURRENT_DAY].updateEvent(name, comment, start, end, uuid)
 	c.events_for_day(w)
+}
+
+func (c calendar) update_event_form(w http.ResponseWriter, r *http.Request) {
+	uuid := r.FormValue("uuid")
+	data := TEMPLATE_TOP
+	data += fmt.Sprintf(`<h1>%d/%d/%d</h1>`, CURRENT_DAY+1, CURRENT_MONTH+1, CURRENT_YEAR)
+	dayEvents := c.years[CURRENT_YEAR-c.firstYear].months[CURRENT_MONTH].days[CURRENT_DAY].events
+	for dayEvents.uuid != uuid {
+		dayEvents = dayEvents.next
+	}
+	data += fmt.Sprintf(`<table><tr>
+		<th>%02d:%02d - %02d:%02d %s</th>
+		</tr>
+		<tr>
+		<td>%s</td>
+		</tr></table>`, dayEvents.startTime.Hour(), dayEvents.startTime.Minute(),
+		dayEvents.endTime.Hour(), dayEvents.endTime.Minute(), dayEvents.name, dayEvents.comment)
+	data += fmt.Sprintf(UPDATE_EVENT_TEMPLATE, uuid)
+	tmpl, _ := template.New("response").Parse(data)
+	tmpl.Execute(w, nil)
 }
 
 func (c calendar) delete_event(w http.ResponseWriter, formValue string) {

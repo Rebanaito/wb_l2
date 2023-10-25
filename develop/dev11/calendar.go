@@ -92,6 +92,8 @@ func handler(w http.ResponseWriter, r *http.Request, calendar calendar, mu *sync
 			calendar.update_event(w, r)
 		case "/delete_event":
 			calendar.delete_event(w, r.FormValue("event_uid"))
+		case "/update_event_form":
+			calendar.update_event_form(w, r)
 		}
 	}
 }
