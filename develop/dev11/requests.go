@@ -75,10 +75,17 @@ const UPDATE_EVENT_TEMPLATE string = `<h2>Update this event:</h2><br><form actio
 <input type="submit" value="Submit">
 </form></html>`
 
-func (c calendar) events_for_day(w http.ResponseWriter) {
+func (c *calendar) events_for_day(r *http.Request, w http.ResponseWriter) {
+	move := r.FormValue("move")
+	if move != "" {
+		changeDay(c, move)
+	}
 	data := TEMPLATE_TOP
-	data += fmt.Sprintf(`<h1>%d/%d/%d</h1>`, CURRENT_DAY+1, CURRENT_MONTH+1, CURRENT_YEAR)
-	dayEvents := c.years[CURRENT_YEAR-c.firstYear].months[CURRENT_MONTH].days[CURRENT_DAY].events
+	day := &c.years[CURRENT_YEAR-c.firstYear].months[CURRENT_MONTH].days[CURRENT_DAY]
+	data += fmt.Sprintf(`<h1 style="text-align: center;">%d/%d/%d - %s</h1>
+						<form action="/events_for_day" method="get"><button name="move" value="previous">Previous day</button>
+						<button name="move" value="next">Next day</button></form>`, CURRENT_DAY+1, CURRENT_MONTH+1, CURRENT_YEAR, day.weekday.String())
+	dayEvents := day.events
 	if dayEvents == nil {
 		data += `<h2>No events</h2>`
 	}
@@ -99,33 +106,33 @@ func (c calendar) events_for_day(w http.ResponseWriter) {
 	tmpl.Execute(w, nil)
 }
 
-func (c calendar) events_for_week(w http.ResponseWriter) {
+func (c *calendar) events_for_week(r *http.Request, w http.ResponseWriter) {
 }
 
-func (c calendar) events_for_month(w http.ResponseWriter) {
+func (c *calendar) events_for_month(r *http.Request, w http.ResponseWriter) {
 
 }
 
-func (c calendar) create_event(w http.ResponseWriter, r *http.Request) {
+func (c *calendar) create_event(w http.ResponseWriter, r *http.Request) {
 	start := r.FormValue("start-time")
 	end := r.FormValue("end-time")
 	name := r.FormValue("event-name")
 	comment := r.FormValue("comment")
 	c.years[CURRENT_YEAR-c.firstYear].months[CURRENT_MONTH].days[CURRENT_DAY].insertEvent(name, comment, start, end)
-	c.events_for_day(w)
+	c.events_for_day(r, w)
 }
 
-func (c calendar) update_event(w http.ResponseWriter, r *http.Request) {
+func (c *calendar) update_event(w http.ResponseWriter, r *http.Request) {
 	start := r.FormValue("start-time")
 	end := r.FormValue("end-time")
 	name := r.FormValue("event-name")
 	comment := r.FormValue("comment")
 	uuid := r.FormValue("uuid")
 	c.years[CURRENT_YEAR-c.firstYear].months[CURRENT_MONTH].days[CURRENT_DAY].updateEvent(name, comment, start, end, uuid)
-	c.events_for_day(w)
+	c.events_for_day(r, w)
 }
 
-func (c calendar) update_event_form(w http.ResponseWriter, r *http.Request) {
+func (c *calendar) update_event_form(w http.ResponseWriter, r *http.Request) {
 	uuid := r.FormValue("uuid")
 	data := TEMPLATE_TOP
 	data += fmt.Sprintf(`<h1>%d/%d/%d</h1>`, CURRENT_DAY+1, CURRENT_MONTH+1, CURRENT_YEAR)
@@ -145,6 +152,30 @@ func (c calendar) update_event_form(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, nil)
 }
 
-func (c calendar) delete_event(w http.ResponseWriter, formValue string) {
+func (c *calendar) delete_event(w http.ResponseWriter, formValue string) {
 
+}
+
+func changeDay(cal *calendar, move string) {
+	if move == "previous" {
+		CURRENT_DAY--
+		if CURRENT_DAY < 0 {
+			CURRENT_MONTH--
+			if CURRENT_MONTH < 0 {
+				CURRENT_MONTH = 11
+				CURRENT_YEAR--
+			}
+			CURRENT_DAY = len(cal.years[CURRENT_YEAR-cal.firstYear].months[CURRENT_MONTH].days) - 1
+		}
+	} else if move == "next" {
+		CURRENT_DAY++
+		if CURRENT_DAY >= len(cal.years[CURRENT_YEAR-cal.firstYear].months[CURRENT_MONTH].days) {
+			CURRENT_DAY = 1
+			CURRENT_MONTH++
+			if CURRENT_MONTH > 11 {
+				CURRENT_MONTH = 1
+				CURRENT_YEAR++
+			}
+		}
+	}
 }

@@ -30,7 +30,8 @@ type event struct {
 }
 
 type day struct {
-	events *event
+	weekday time.Weekday
+	events  *event
 }
 
 type month struct {
@@ -78,11 +79,11 @@ func handler(w http.ResponseWriter, r *http.Request, calendar calendar, mu *sync
 	if r.Method == "GET" {
 		switch r.URL.Path {
 		case "/events_for_day":
-			calendar.events_for_day(w)
+			calendar.events_for_day(r, w)
 		case "/events_for_week":
-			calendar.events_for_week(w)
+			calendar.events_for_week(r, w)
 		case "/", "/events_for_month":
-			calendar.events_for_month(w)
+			calendar.events_for_month(r, w)
 		}
 	} else if r.Method == "POST" {
 		switch r.URL.Path {
