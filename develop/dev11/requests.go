@@ -34,6 +34,11 @@ const DAY_TEMPLATE_WITH_COMMENT string = `<table><tr>
 <form action="/update_event_form" method="post">
 	<input id="uuid" type="hidden" name="uuid" value="%s">
 	<button>Update event</button>
+</form>
+</form>
+<form action="/delete_event" method="post">
+	<input id="uuid" type="hidden" name="uuid" value="%s">
+	<button>Delete event</button>
 </form>`
 
 const DAY_TEMPLATE_NO_COMMENT string = `<table><tr>
@@ -43,6 +48,10 @@ const DAY_TEMPLATE_NO_COMMENT string = `<table><tr>
 <form action="/update_event_form" method="post">
 	<input id="uuid" type="hidden" name="uuid" value="%s">
 	<button>Update event</button>
+</form>
+<form action="/delete_event" method="post">
+	<input id="uuid" type="hidden" name="uuid" value="%s">
+	<button>Delete event</button>
 </form>`
 
 const WEEK_TEMPLATE string = `<table>
@@ -95,11 +104,14 @@ func (c *calendar) events_for_day(r *http.Request, w http.ResponseWriter) {
 	for dayEvents != nil {
 		var new string
 		if dayEvents.comment != "" {
-			new = fmt.Sprintf(DAY_TEMPLATE_WITH_COMMENT, dayEvents.startTime.Hour(), dayEvents.startTime.Minute(),
-				dayEvents.endTime.Hour(), dayEvents.endTime.Minute(), dayEvents.name, dayEvents.comment, dayEvents.uuid)
+			new = fmt.Sprintf(DAY_TEMPLATE_WITH_COMMENT, dayEvents.startTime.Hour(),
+				dayEvents.startTime.Minute(), dayEvents.endTime.Hour(),
+				dayEvents.endTime.Minute(), dayEvents.name, dayEvents.comment,
+				dayEvents.uuid, dayEvents.uuid)
 		} else {
-			new = fmt.Sprintf(DAY_TEMPLATE_NO_COMMENT, dayEvents.startTime.Hour(), dayEvents.startTime.Minute(),
-				dayEvents.endTime.Hour(), dayEvents.endTime.Minute(), dayEvents.name, dayEvents.uuid)
+			new = fmt.Sprintf(DAY_TEMPLATE_NO_COMMENT, dayEvents.startTime.Hour(),
+				dayEvents.startTime.Minute(), dayEvents.endTime.Hour(),
+				dayEvents.endTime.Minute(), dayEvents.name, dayEvents.uuid, dayEvents.uuid)
 		}
 		data = string(append([]byte(data), []byte(new)...))
 		dayEvents = dayEvents.next
@@ -116,7 +128,7 @@ func (c *calendar) events_for_week(r *http.Request, w http.ResponseWriter) {
 	}
 	data := TEMPLATE_TOP
 	days := findWeek(c)
-	data += fmt.Sprintf(`<h1 style="text-align: center;">Week #%d %s - %d %s %d</h1>
+	data += fmt.Sprintf(`<h1 style="text-align: center;">%d %s - %d %s %d</h1>
 						<form action="/events_for_week" method="get"><button name="move" value="previous">Previous week</button>
 						<button name="move" value="next">Next week</button></form><table><tr>`, days[0].t.Day(), days[0].t.Month().String(), days[6].t.Day(), days[6].t.Month().String(), CURRENT_YEAR)
 	for i := 0; i < len(days); i++ {
@@ -213,8 +225,18 @@ func (c *calendar) update_event_form(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, nil)
 }
 
-func (c *calendar) delete_event(w http.ResponseWriter, formValue string) {
-
+func (c *calendar) delete_event(w http.ResponseWriter, r *http.Request) {
+	uuid := r.FormValue("uuid")
+	events := &c.years[CURRENT_YEAR-c.firstYear].months[CURRENT_MONTH].days[CURRENT_DAY].events
+	if (*events).uuid == uuid {
+		*events = (*events).next
+	} else {
+		for (*events).next.uuid != uuid {
+			*events = (*events).next
+		}
+		(*events).next = (*events).next.next
+	}
+	c.events_for_day(r, w)
 }
 
 func changeDay(cal *calendar, move string) {
@@ -325,13 +347,16 @@ func selectDay(c *calendar, r *http.Request) {
 	y := r.FormValue("current_year")
 	m := r.FormValue("current_month")
 	d := r.FormValue("current_day")
-	if y == "" || m == "" || d == "" {
+	if d == "" {
+		return
+	}
+	day, _ := strconv.Atoi(d)
+	CURRENT_DAY = day
+	if m == "" || y == "" {
 		return
 	}
 	year, _ := strconv.Atoi(y)
 	month, _ := strconv.Atoi(m)
-	day, _ := strconv.Atoi(d)
 	CURRENT_YEAR = uint16(year)
 	CURRENT_MONTH = month
-	CURRENT_DAY = day
 }

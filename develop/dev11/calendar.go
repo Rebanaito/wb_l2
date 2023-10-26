@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/gob"
 	"log"
 	"net/http"
 	"os"
@@ -41,8 +42,7 @@ type month struct {
 }
 
 type year struct {
-	yearNum uint16
-	months  []month
+	months []month
 }
 
 type calendar struct {
@@ -51,14 +51,14 @@ type calendar struct {
 }
 
 func main() {
-	calendar, noEnv := initEnv()
-	if noEnv {
-		calendar = initYears()
+	calendar, err := initEnv()
+	if err != nil {
+		log.Fatal(err)
 	}
-	runServer(calendar)
+	runServer(&calendar)
 }
 
-func runServer(calendar calendar) {
+func runServer(calendar *calendar) {
 	mu := &sync.Mutex{}
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		handler(w, r, calendar, mu)
@@ -74,9 +74,26 @@ func runServer(calendar calendar) {
 
 	_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	//log.Fatal(saveCalendar(calendar))
 }
 
-func handler(w http.ResponseWriter, r *http.Request, calendar calendar, mu *sync.Mutex) {
+func saveCalendar(cal *calendar) (err error) {
+	file, err := os.Open("calendar.gob")
+	if os.IsNotExist(err) {
+		file, err = os.Create("calendar.gob")
+		if err != nil {
+			return
+		}
+	} else if err != nil {
+		return
+	}
+	defer file.Close()
+	encoder := gob.NewEncoder(file)
+	err = encoder.Encode(*cal)
+	return
+}
+
+func handler(w http.ResponseWriter, r *http.Request, calendar *calendar, mu *sync.Mutex) {
 	if r.Method == "GET" {
 		switch r.URL.Path {
 		case "/events_for_day":
@@ -93,7 +110,7 @@ func handler(w http.ResponseWriter, r *http.Request, calendar calendar, mu *sync
 		case "/update_event":
 			calendar.update_event(w, r)
 		case "/delete_event":
-			calendar.delete_event(w, r.FormValue("event_uid"))
+			calendar.delete_event(w, r)
 		case "/update_event_form":
 			calendar.update_event_form(w, r)
 		}

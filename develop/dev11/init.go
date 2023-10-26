@@ -5,7 +5,6 @@ import (
 )
 
 func makeYear(num uint16) (y year) {
-	y.yearNum = num
 	y.months = []month{{"January", makeMonth(num, time.January, 31)},
 		{"February", makeMonth(num, time.February, 28+leapYear(num))},
 		{"March", makeMonth(num, time.March, 31)},
@@ -39,8 +38,8 @@ func leapYear(num uint16) int {
 	return 0
 }
 
-func initEnv() (c calendar, noEnv bool) {
-	return calendar{}, true
+func initEnv() (c calendar, err error) {
+	return initYears(), nil
 }
 
 func initYears() (c calendar) {
