@@ -30,6 +30,7 @@ type event struct {
 }
 
 type day struct {
+	t       time.Time
 	weekday time.Weekday
 	events  *event
 }

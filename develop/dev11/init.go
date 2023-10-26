@@ -27,6 +27,7 @@ func makeMonth(year uint16, month time.Month, dayCount int) []day {
 	days := make([]day, dayCount)
 	for i := range days {
 		days[i].weekday = time.Weekday((startsWith + i) % 7)
+		days[i].t = time.Date(int(year), month, i+1, 0, 0, 0, 0, time.UTC)
 	}
 	return days
 }

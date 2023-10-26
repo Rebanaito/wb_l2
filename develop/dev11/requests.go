@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 )
 
 const TEMPLATE_TOP string = `<html>
@@ -79,6 +80,8 @@ func (c *calendar) events_for_day(r *http.Request, w http.ResponseWriter) {
 	move := r.FormValue("move")
 	if move != "" {
 		changeDay(c, move)
+	} else {
+		selectDay(c, r)
 	}
 	data := TEMPLATE_TOP
 	day := &c.years[CURRENT_YEAR-c.firstYear].months[CURRENT_MONTH].days[CURRENT_DAY]
@@ -107,6 +110,33 @@ func (c *calendar) events_for_day(r *http.Request, w http.ResponseWriter) {
 }
 
 func (c *calendar) events_for_week(r *http.Request, w http.ResponseWriter) {
+	move := r.FormValue("move")
+	if move != "" {
+		changeWeek(c, move)
+	}
+	data := TEMPLATE_TOP
+	days := findWeek(c)
+	data += fmt.Sprintf(`<h1 style="text-align: center;">Week #%d %s - %d %s %d</h1>
+						<form action="/events_for_week" method="get"><button name="move" value="previous">Previous week</button>
+						<button name="move" value="next">Next week</button></form><table><tr>`, days[0].t.Day(), days[0].t.Month().String(), days[6].t.Day(), days[6].t.Month().String(), CURRENT_YEAR)
+	for i := 0; i < len(days); i++ {
+		data += fmt.Sprintf(`<th>%d/%d/%d</th>`, days[i].t.Day(), days[i].t.Month(), days[i].t.Year())
+	}
+	data += `</tr><tr>`
+	for i := 0; i < len(days); i++ {
+		data += fmt.Sprintf(`<td>%d events</td>`, getEventLen(days[i].events))
+	}
+	data += `</tr><tr>`
+	for i := 0; i < len(days); i++ {
+		data += fmt.Sprintf(`<td><form action="/events_for_day" method="get">
+							<input name="current_year" type="hidden" value="%d">
+							<input name="current_month" type="hidden" value="%d">
+							<input name="current_day" type="hidden" value="%d">
+							<input type="submit" value="Open"></form></td>`, days[i].t.Year(), days[i].t.Month()-1, days[i].t.Day())
+	}
+	data += `</tr></table></html>`
+	tmpl, _ := template.New("response").Parse(data)
+	tmpl.Execute(w, nil)
 }
 
 func (c *calendar) events_for_month(r *http.Request, w http.ResponseWriter) {
@@ -173,9 +203,88 @@ func changeDay(cal *calendar, move string) {
 			CURRENT_DAY = 1
 			CURRENT_MONTH++
 			if CURRENT_MONTH > 11 {
-				CURRENT_MONTH = 1
+				CURRENT_MONTH = 0
 				CURRENT_YEAR++
 			}
 		}
 	}
+}
+
+func changeWeek(cal *calendar, move string) {
+	if move == "previous" {
+		CURRENT_DAY -= 7
+		if CURRENT_DAY < 0 {
+			CURRENT_MONTH--
+			if CURRENT_MONTH < 0 {
+				CURRENT_MONTH = 11
+				CURRENT_YEAR--
+			}
+			CURRENT_DAY = len(cal.years[CURRENT_YEAR-cal.firstYear].months[CURRENT_MONTH].days) - 1 + CURRENT_DAY
+		}
+	} else if move == "next" {
+		CURRENT_DAY += 7
+		if CURRENT_DAY >= len(cal.years[CURRENT_YEAR-cal.firstYear].months[CURRENT_MONTH].days) {
+			CURRENT_DAY %= len(cal.years[CURRENT_YEAR-cal.firstYear].months[CURRENT_MONTH].days)
+			CURRENT_MONTH++
+			if CURRENT_MONTH > 11 {
+				CURRENT_MONTH = 0
+				CURRENT_YEAR++
+			}
+		}
+	}
+}
+
+func findWeek(c *calendar) []day {
+	days := make([]day, 7)
+	currentDay := &c.years[CURRENT_YEAR-c.firstYear].months[CURRENT_MONTH].days[CURRENT_DAY]
+	for i := 0; i < 7; i++ {
+		days[i] = getDay(c, i-int(currentDay.weekday))
+	}
+	return days
+}
+
+func getDay(cal *calendar, dir int) day {
+	cd := CURRENT_DAY
+	cm := CURRENT_MONTH
+	cy := CURRENT_YEAR
+	cd += dir
+	if cd < 0 {
+		cm--
+		if cm < 0 {
+			cm = 11
+			cy--
+		}
+		cd = len(cal.years[cy-cal.firstYear].months[cm].days) - 1 + cd
+	} else if cd >= len(cal.years[cy-cal.firstYear].months[cm].days) {
+		cd %= len(cal.years[cy-cal.firstYear].months[cm].days)
+		cm++
+		if cm > 11 {
+			cm = 0
+			cy++
+		}
+	}
+	return cal.years[cy-cal.firstYear].months[cm].days[cd]
+}
+
+func getEventLen(e *event) (len int) {
+	for e != nil {
+		len++
+		e = e.next
+	}
+	return
+}
+
+func selectDay(c *calendar, r *http.Request) {
+	y := r.FormValue("current_year")
+	m := r.FormValue("current_month")
+	d := r.FormValue("current_day")
+	if y == "" || m == "" || d == "" {
+		return
+	}
+	year, _ := strconv.Atoi(y)
+	month, _ := strconv.Atoi(m)
+	day, _ := strconv.Atoi(d)
+	CURRENT_YEAR = uint16(year)
+	CURRENT_MONTH = month
+	CURRENT_DAY = day
 }
