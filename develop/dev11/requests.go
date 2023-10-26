@@ -132,7 +132,7 @@ func (c *calendar) events_for_week(r *http.Request, w http.ResponseWriter) {
 							<input name="current_year" type="hidden" value="%d">
 							<input name="current_month" type="hidden" value="%d">
 							<input name="current_day" type="hidden" value="%d">
-							<input type="submit" value="Open"></form></td>`, days[i].t.Year(), days[i].t.Month()-1, days[i].t.Day())
+							<input type="submit" value="Open"></form></td>`, days[i].t.Year(), days[i].t.Month()-1, days[i].t.Day()-1)
 	}
 	data += `</tr></table></html>`
 	tmpl, _ := template.New("response").Parse(data)
@@ -140,7 +140,38 @@ func (c *calendar) events_for_week(r *http.Request, w http.ResponseWriter) {
 }
 
 func (c *calendar) events_for_month(r *http.Request, w http.ResponseWriter) {
-
+	move := r.FormValue("move")
+	if move != "" {
+		changeMonth(c, move)
+	}
+	data := TEMPLATE_TOP
+	days := c.years[CURRENT_YEAR-c.firstYear].months[CURRENT_MONTH].days
+	data += fmt.Sprintf(`<h1 style="text-align: center;">%s %d</h1>
+						<form action="/events_for_month" method="get"><button name="move" value="previous">Previous month</button>
+						<button name="move" value="next">Next month</button></form><table><tr>`, days[CURRENT_DAY].t.Month().String(), CURRENT_YEAR)
+	i := 0
+	for i < int(days[0].weekday) {
+		data += `<td></td>`
+		i++
+	}
+	for j := range days {
+		data += fmt.Sprintf(`<td><form action="/events_for_day" method="get">
+							<input name="current_day" type="hidden" value="%d">
+							<input type="submit" value="%s %d/%d"></form></td>`, days[j].t.Day()-1, days[j].weekday.String()[:3], days[j].t.Day(), days[j].t.Month())
+		i++
+		if i > 6 {
+			i = 0
+			data += `</tr><tr>`
+		} else if j == len(days)-1 {
+			for i < 7 {
+				data += `<td></td>`
+				i++
+			}
+		}
+	}
+	data += `</tr></table></html>`
+	tmpl, _ := template.New("response").Parse(data)
+	tmpl.Execute(w, nil)
 }
 
 func (c *calendar) create_event(w http.ResponseWriter, r *http.Request) {
@@ -230,6 +261,22 @@ func changeWeek(cal *calendar, move string) {
 				CURRENT_MONTH = 0
 				CURRENT_YEAR++
 			}
+		}
+	}
+}
+
+func changeMonth(cal *calendar, move string) {
+	if move == "previous" {
+		CURRENT_MONTH--
+		if CURRENT_MONTH < 0 {
+			CURRENT_MONTH = 11
+			CURRENT_YEAR--
+		}
+	} else if move == "next" {
+		CURRENT_MONTH++
+		if CURRENT_MONTH > 11 {
+			CURRENT_MONTH = 0
+			CURRENT_YEAR++
 		}
 	}
 }
