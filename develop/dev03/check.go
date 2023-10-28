@@ -5,8 +5,8 @@ import (
 	"log"
 )
 
-func check(lines []string, filename string) {
-	sorted := checkIfSorted(lines)
+func check(lines []string, filename string, flags options) {
+	sorted := checkIfSorted(lines, flags)
 	if sorted {
 		fmt.Println("Lines in file '" + filename + "' are sorted")
 	} else {
@@ -14,9 +14,9 @@ func check(lines []string, filename string) {
 	}
 }
 
-func checkIfSorted(lines []string) bool {
+func checkIfSorted(lines []string, flags options) bool {
 	for i := 1; i < len(lines); i++ {
-		if !compare(lines[i-1], lines[i]) {
+		if !compare(lines[i-1], lines[i], flags) {
 			return false
 		}
 	}

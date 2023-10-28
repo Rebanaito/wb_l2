@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-func parseInput(argv []string) (lines []string, filename string) {
-	filename, err := parseArgs(os.Args)
+func parseInput(argv []string, flags *options) (lines []string, filename string) {
+	filename, err := parseArgs(argv, flags)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -20,11 +20,11 @@ func parseInput(argv []string) (lines []string, filename string) {
 		os.Exit(1)
 	}
 	lines = strings.Split(string(bytes), "\n")
-	lines = lines[:len(lines)-2]
+	lines = lines[:len(lines)-1]
 	return
 }
 
-func parseArgs(argv []string) (filename string, err error) {
+func parseArgs(argv []string, flags *options) (filename string, err error) {
 	i := 1
 	for i < len(argv) {
 		switch argv[i] {
@@ -64,6 +64,9 @@ func parseArgs(argv []string) (filename string, err error) {
 			filename = argv[i]
 		}
 		i += 1
+	}
+	if filename == "" {
+		err = errors.New("incorrect format")
 	}
 	return
 }

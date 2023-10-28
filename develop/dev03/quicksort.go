@@ -1,19 +1,19 @@
 package main
 
-func quicksort(lines []string, low, high int) {
+func quicksort(lines []string, low, high int, flags options) {
 	if low >= high {
 		return
 	}
-	pivot := quicksortPartition(lines, low, high)
-	quicksort(lines, low, pivot-1)
-	quicksort(lines, pivot+1, high)
+	pivot := quicksortPartition(lines, low, high, flags)
+	quicksort(lines, low, pivot-1, flags)
+	quicksort(lines, pivot+1, high, flags)
 }
 
-func quicksortPartition(lines []string, low, high int) int {
+func quicksortPartition(lines []string, low, high int, flags options) int {
 	pivot := lines[high]
 	i := low - 1
 	for j := low; j < high; j++ {
-		if compare(lines[j], pivot) {
+		if compare(lines[j], pivot, flags) {
 			i++
 			lines[i], lines[j] = lines[j], lines[i]
 		}

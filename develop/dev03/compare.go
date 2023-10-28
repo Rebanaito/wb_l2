@@ -5,10 +5,10 @@ import (
 	"unicode"
 )
 
-func compare(left, right string) bool {
+func compare(left, right string, flags options) bool {
 	var result bool
 	if flags.k != 0 {
-		result = substring(left, right)
+		result = substring(left, right, flags)
 	} else if flags.n {
 		result = numbers(left, right)
 	} else if flags.M {
@@ -22,7 +22,7 @@ func compare(left, right string) bool {
 	return result
 }
 
-func substring(l, r string) bool {
+func substring(l, r string, flags options) bool {
 	left := strings.Split(l, " ")
 	right := strings.Split(r, " ")
 	if len(left) < int(flags.k) && len(right) >= int(flags.k) {

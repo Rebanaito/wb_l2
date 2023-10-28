@@ -15,8 +15,6 @@ type options struct {
 	o string
 }
 
-var flags options
-
 var month = map[string]int{
 	"JAN": 1,
 	"FEB": 2,
@@ -33,16 +31,17 @@ var month = map[string]int{
 }
 
 func main() {
-	lines, filename := parseInput(os.Args)
+	var flags options
+	lines, filename := parseInput(os.Args, &flags)
 	if flags.c {
-		check(lines, filename)
+		check(lines, filename, flags)
 	} else {
-		sortLines(lines)
+		sortLines(lines, flags)
 	}
 }
 
-func sortLines(lines []string) {
-	quicksort(lines, 0, len(lines)-1)
+func sortLines(lines []string, flags options) {
+	quicksort(lines, 0, len(lines)-1, flags)
 	outfile := "output.txt"
 	if flags.o != "" {
 		outfile = flags.o
