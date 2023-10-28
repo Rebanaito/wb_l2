@@ -2,11 +2,29 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"strconv"
+	"strings"
 )
 
-func parseArgs(argv []string) (string, error) {
-	var filename string
+func parseInput(argv []string) (lines []string, filename string) {
+	filename, err := parseArgs(os.Args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	bytes, err := os.ReadFile(filename)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	lines = strings.Split(string(bytes), "\n")
+	lines = lines[:len(lines)-2]
+	return
+}
+
+func parseArgs(argv []string) (filename string, err error) {
 	i := 1
 	for i < len(argv) {
 		switch argv[i] {
@@ -47,5 +65,5 @@ func parseArgs(argv []string) (string, error) {
 		}
 		i += 1
 	}
-	return filename, nil
+	return
 }
