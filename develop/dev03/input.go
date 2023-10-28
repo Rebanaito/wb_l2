@@ -20,7 +20,9 @@ func parseInput(argv []string, flags *options) (lines []string, filename string)
 		os.Exit(1)
 	}
 	lines = strings.Split(string(bytes), "\n")
-	lines = lines[:len(lines)-1]
+	if len(lines[len(lines)-1]) == 0 {
+		lines = lines[:len(lines)-1]
+	}
 	return
 }
 
