@@ -32,7 +32,7 @@ func substring(l, r string, flags options) bool {
 	} else if len(left) < int(flags.k) && len(right) < int(flags.k) {
 		return left[0] < right[0]
 	}
-	return left[flags.k-1] < right[flags.k-1]
+	return left[flags.k-1] <= right[flags.k-1]
 }
 
 func numbers(l, r string) bool {

@@ -36,12 +36,12 @@ func main() {
 	if flags.c {
 		check(lines, filename, flags)
 	} else {
-		sortLines(lines, flags)
+		quicksort(lines, 0, len(lines)-1, flags)
+		writeToFile(lines, flags)
 	}
 }
 
-func sortLines(lines []string, flags options) {
-	quicksort(lines, 0, len(lines)-1, flags)
+func writeToFile(lines []string, flags options) {
 	outfile := "output.txt"
 	if flags.o != "" {
 		outfile = flags.o
@@ -51,7 +51,23 @@ func sortLines(lines []string, flags options) {
 		fmt.Fprintln(os.Stderr, "Error opening the output file")
 		os.Exit(1)
 	}
+	defer file.Close()
+	if flags.u {
+		lines = removeDuplicates(lines)
+	}
 	for _, line := range lines {
 		fmt.Fprintln(file, line)
 	}
+}
+
+func removeDuplicates(lines []string) (new []string) {
+	if len(lines) != 0 {
+		new = append(new, lines[0])
+	}
+	for i := 1; i < len(lines); i++ {
+		if lines[i] != lines[i-1] {
+			new = append(new, lines[i])
+		}
+	}
+	return
 }

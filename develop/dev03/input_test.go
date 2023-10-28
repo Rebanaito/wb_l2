@@ -7,9 +7,9 @@ import (
 )
 
 func TestInput(t *testing.T) {
-	var optionsWant options = options{k: 2, r: true, M: true}
+	var optionsWant options = options{k: 2, r: true, M: true, o: "out.file"}
 	fileWant := "files/test.txt"
-	argv := []string{"sort", "-k", "2", "-r", "-M", fileWant}
+	argv := []string{"sort", "-k", "2", "-r", "-M", fileWant, "-o", "out.file"}
 	var flags options
 	lines, filename := parseInput(argv, &flags)
 	if filename != fileWant {
