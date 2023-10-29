@@ -28,7 +28,5 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	for _, target := range targets {
-		findPatterns(target, patterns, flags, writer)
-	}
+	searchFiles(targets, patterns, flags, writer)
 }
