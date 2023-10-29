@@ -17,26 +17,23 @@ type options struct {
 	s            bool
 }
 
-var flags options
-
 func main() {
 	writer := bufio.NewWriter(os.Stdout)
 	defer writer.Flush()
-	files := parseArgs(os.Args)
-	fmt.Println("Flags:", flags)
-	fmt.Println("Files:", files)
-	if invalidValues() {
+	flags := options{}
+	files := parseArgs(os.Args, &flags)
+	if invalidValues(flags) {
 		fmt.Fprintf(os.Stderr, "Invalid field values")
 		os.Exit(1)
 	}
 	if len(files) != 0 {
-		cutFiles(files, writer)
+		cutFiles(files, writer, flags)
 	} else {
-		cutStdin(writer)
+		cutStdin(writer, flags)
 	}
 }
 
-func invalidValues() bool {
+func invalidValues(flags options) bool {
 	if flags.fieldsTop != 0 && flags.fieldsTop < flags.fieldsBottom {
 		return true
 	}
@@ -54,7 +51,7 @@ func invalidValues() bool {
 	return false
 }
 
-func cutStdin(writer *bufio.Writer) {
+func cutStdin(writer *bufio.Writer, flags options) {
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		line, err := reader.ReadString('\n')
@@ -64,11 +61,11 @@ func cutStdin(writer *bufio.Writer) {
 			fmt.Fprint(os.Stderr, err)
 			os.Exit(1)
 		}
-		cutLine(line, writer)
+		cutLine(line, writer, flags)
 	}
 }
 
-func cutFiles(files []string, writer *bufio.Writer) {
+func cutFiles(files []string, writer *bufio.Writer, flags options) {
 	for _, file := range files {
 		bytes, err := os.ReadFile(file)
 		if err != nil {
@@ -77,12 +74,12 @@ func cutFiles(files []string, writer *bufio.Writer) {
 		}
 		lines := strings.Split(string(bytes), "\n")
 		for _, line := range lines {
-			cutLine(line, writer)
+			cutLine(line, writer, flags)
 		}
 	}
 }
 
-func cutLine(line string, writer *bufio.Writer) {
+func cutLine(line string, writer *bufio.Writer, flags options) {
 	if !strings.Contains(line, flags.d) {
 		if flags.s {
 			return
@@ -90,18 +87,18 @@ func cutLine(line string, writer *bufio.Writer) {
 		fmt.Fprint(writer, line)
 	} else {
 		fields := strings.Split(line, flags.d)
-		str := buildString(fields)
+		str := buildString(fields, flags)
 		fmt.Fprintln(writer, str)
 	}
 }
 
-func buildString(fields []string) string {
+func buildString(fields []string, flags options) string {
 	var builder strings.Builder
 	i := 0
 	first := true
 	if flags.fieldsBottom != 0 {
 		for i < flags.fieldsBottom && i < len(fields) {
-			stringAppend(&first, &builder, fields, i)
+			stringAppend(&first, &builder, fields, i, flags)
 			i++
 		}
 	}
@@ -113,20 +110,20 @@ func buildString(fields []string) string {
 			} else if flags.fieldsList[j]-1 >= len(fields) {
 				break
 			}
-			stringAppend(&first, &builder, fields, flags.fieldsList[j]-1)
+			stringAppend(&first, &builder, fields, flags.fieldsList[j]-1, flags)
 		}
 	}
 	if flags.fieldsTop != 0 {
 		k := flags.fieldsTop - 1
 		for k < len(fields) {
-			stringAppend(&first, &builder, fields, k)
+			stringAppend(&first, &builder, fields, k, flags)
 			k++
 		}
 	}
 	return builder.String()
 }
 
-func stringAppend(first *bool, builder *strings.Builder, fields []string, index int) {
+func stringAppend(first *bool, builder *strings.Builder, fields []string, index int, flags options) {
 	if !*first {
 		builder.WriteString(flags.d)
 	} else {

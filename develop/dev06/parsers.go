@@ -7,8 +7,7 @@ import (
 	"strings"
 )
 
-func parseArgs(argv []string) []string {
-	var files []string
+func parseArgs(argv []string, flags *options) (files []string) {
 	flags.d = "\t"
 	for i := 1; i < len(argv); i++ {
 		switch argv[i] {
@@ -17,7 +16,7 @@ func parseArgs(argv []string) []string {
 				fmt.Fprint(os.Stderr, "-f: needs field number(s) as argument(s)\n")
 				os.Exit(1)
 			}
-			parseList(argv[i+1])
+			parseList(argv[i+1], flags)
 			i += 1
 		case "-d":
 			if i == len(argv)-1 {
@@ -36,14 +35,14 @@ func parseArgs(argv []string) []string {
 			files = append(files, argv[i])
 		}
 	}
-	return files
+	return
 }
 
-func parseList(list string) {
+func parseList(list string, flags *options) {
 	if strings.ContainsRune(list, '-') {
-		parseRange(list)
+		parseRange(list, flags)
 	} else if strings.ContainsRune(list, ',') {
-		parseFields(list)
+		parseFields(list, flags)
 	} else {
 		num, err := strconv.Atoi(list)
 		if err != nil || num < 1 {
@@ -53,11 +52,11 @@ func parseList(list string) {
 	}
 }
 
-func parseRange(str string) {
+func parseRange(str string, flags *options) {
 	if str[0] == '-' {
-		parseBottom(str)
+		parseBottom(str, flags)
 	} else if str[len(str)-1] == '-' {
-		parseTop(str)
+		parseTop(str, flags)
 	} else {
 		halves := strings.Split(str, "-")
 		if len(halves) != 2 {
@@ -78,12 +77,12 @@ func parseRange(str string) {
 	}
 }
 
-func parseBottom(str string) {
+func parseBottom(str string, flags *options) {
 	if flags.fieldsBottom != 0 {
 		fmt.Fprint(os.Stderr, "-f: too many range specifiers\n")
 		os.Exit(1)
 	}
-	bottom, err := strconv.Atoi(str[:len(str)-1])
+	bottom, err := strconv.Atoi(str[1:])
 	if err != nil || bottom < 1 {
 		fmt.Fprintf(os.Stderr, "-f: invalid argument: %s\n", str)
 		os.Exit(1)
@@ -91,12 +90,12 @@ func parseBottom(str string) {
 	flags.fieldsBottom = bottom
 }
 
-func parseTop(str string) {
+func parseTop(str string, flags *options) {
 	if flags.fieldsTop != 0 {
 		fmt.Fprint(os.Stderr, "-f: too many range specifiers\n")
 		os.Exit(1)
 	}
-	top, err := strconv.Atoi(str[1:])
+	top, err := strconv.Atoi(str[:len(str)-1])
 	if err != nil || top < 1 {
 		fmt.Fprintf(os.Stderr, "-f: invalid argument: %s\n", str)
 		os.Exit(1)
@@ -104,7 +103,7 @@ func parseTop(str string) {
 	flags.fieldsTop = top
 }
 
-func parseFields(fields string) {
+func parseFields(fields string, flags *options) {
 	substrings := strings.Split(fields, ",")
 	if len(substrings) == 0 {
 		fmt.Fprintf(os.Stderr, "-f: invalid argument: %s\n", fields)
