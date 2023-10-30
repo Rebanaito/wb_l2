@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,30 +44,46 @@ func parseArgs(argv []string) (targets []string, err error) {
 		case "-r", "--recursive":
 			recursive = true
 		case "-l":
-			if i == len(argv)-1 {
-				return nil, fmt.Errorf("wget: option requires an argument -- 'l'")
-			}
-			num, err := strconv.Atoi(argv[i+1])
+			err := depth(argv, i)
 			if err != nil {
 				return nil, err
 			}
-			MAX_DEPTH = num
-			if num == 0 {
-				MAX_DEPTH = 2147483647
-			}
 		default:
-			if arg[0] == '-' {
-				return nil, fmt.Errorf("wget: unrecognized option '%s'", arg)
+			targets, err = parseTarget(arg, targets)
+			if err != nil {
+				return nil, err
 			}
-			if strings.Contains(arg, "http://") {
-				arg = arg[7:]
-			} else if strings.Contains(arg, "https://") {
-				arg = arg[8:]
-			}
-			targets = append(targets, arg)
 		}
 	}
 	return targets, nil
+}
+
+func depth(argv []string, i int) error {
+	if i == len(argv)-1 {
+		return errors.New("wget: option requires an argument -- 'l'")
+	}
+	num, err := strconv.Atoi(argv[i+1])
+	if err != nil || num < 0 {
+		return errors.New("wget: invalid -l argument")
+	}
+	MAX_DEPTH = num
+	if num == 0 {
+		MAX_DEPTH = 2147483647
+	}
+	return nil
+}
+
+func parseTarget(arg string, targets []string) (appendedTargets []string, err error) {
+	if arg[0] == '-' {
+		return nil, fmt.Errorf("wget: unrecognized option '%s'", arg)
+	}
+	if strings.Contains(arg, "http://") {
+		arg = arg[7:]
+	} else if strings.Contains(arg, "https://") {
+		arg = arg[8:]
+	}
+	appendedTargets = append(targets, arg)
+	return
 }
 
 func nonRecursiveWget(targets []string) {
