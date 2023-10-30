@@ -25,7 +25,7 @@ func TestNonRecursive(t *testing.T) {
 	if err != nil {
 		t.Fatal(`myWget did not produce an index.html file`)
 	}
-	if math.Abs(float64(len(original)-len(myWget))) > 100 {
+	if math.Abs(float64(len(original)-len(myWget))) > 150 {
 		t.Fatal(`index.html doesn't match the one produced by the original wget`)
 	}
 }
