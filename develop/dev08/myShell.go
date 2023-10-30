@@ -18,13 +18,11 @@ var reader = bufio.NewReader(os.Stdin)
 var writer = bufio.NewWriter(os.Stdout)
 
 func main() {
-	clear := exec.Command("clear")
-	clear.Stdout = os.Stdout
-	clear.Run()
+	clearScreen()
 	for {
-		printPrompt()
+		printCommandPrompt()
 		input, err := reader.ReadString('\n')
-		if err == io.EOF || input == "\\exit\n" {
+		if exitPrompted(input, err) {
 			break
 		} else if err != nil {
 			fmt.Println(err)
@@ -47,7 +45,10 @@ func processInput(input string) {
 		command := exec.Command("/usr/bin/"+argv[0], argv[1:]...)
 		command.Stdout = writer
 		command.Stderr = os.Stderr
-		command.Run()
+		err := command.Run()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
 	}
 }
 
@@ -86,10 +87,20 @@ func splitWithQuotes(input string, sep rune) []string {
 	return args
 }
 
-func printPrompt() {
+func printCommandPrompt() {
 	username, _ := user.Current()
 	hostname, _ := os.Hostname()
 	pwd, _ := os.Getwd()
 	fmt.Printf("%s%s%s%s%s%s", color.HiCyanString("┌──("), color.HiYellowString(username.Username+"@"+hostname),
 		color.HiCyanString(")-["), color.HiBlueString(pwd), color.HiCyanString("]\n└─"), color.HiYellowString("$ "))
+}
+
+func clearScreen() {
+	clear := exec.Command("clear")
+	clear.Stdout = os.Stdout
+	clear.Run()
+}
+
+func exitPrompted(input string, err error) bool {
+	return err == io.EOF || input == "\\exit\n"
 }
