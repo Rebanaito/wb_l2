@@ -9,23 +9,20 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 var TIMEOUT int = 10
+var reader = bufio.NewReader(os.Stdin)
+var writer = bufio.NewWriter(os.Stdout)
 
 func main() {
 	host, port, err := parseArgs(os.Args[1:])
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	conn, err := net.DialTimeout("tcp", host+":"+port, time.Second*time.Duration(TIMEOUT))
-	if err != nil {
 		log.Fatal(err)
 	}
-	defer conn.Close()
-	takeInput(conn)
+	dialAndCommunicate(host, port)
 }
 
 func parseArgs(argv []string) (host, port string, err error) {
@@ -74,35 +71,66 @@ func parseTimeout(arg string) (err error) {
 	return err
 }
 
-func takeInput(conn net.Conn) {
-	reader := bufio.NewReader(os.Stdin)
-	writer := bufio.NewWriter(os.Stdout)
-	reply := make([]byte, 8096)
+func dialAndCommunicate(host, port string) {
+	conn, err := net.DialTimeout("tcp", host+":"+port, time.Second*time.Duration(TIMEOUT))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	go listener(conn, wg)
+	go writeToConnection(conn, wg)
+	wg.Wait()
+}
+
+func listener(conn net.Conn, wg *sync.WaitGroup) {
+	defer wg.Done()
+	buffer := make([]byte, 8096)
 	for {
-		printPrompt()
-		input, err := reader.ReadString('\n')
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			break
-		}
-		input = input[:len(input)-1]
-		_, err = conn.Write([]byte(input))
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			break
-		}
-		_, err = conn.Read(reply)
+		n, err := conn.Read(buffer)
 		if err != nil {
 			if err != io.EOF {
-				fmt.Fprintln(os.Stderr, err)
+				log.Fatal(err)
 			}
+			fmt.Println("Connection closed on the other end")
 			break
 		}
-		fmt.Fprintln(writer, string(reply))
-		writer.Flush()
+		if n != 0 {
+			fmt.Fprintln(writer, string(buffer))
+			writer.Flush()
+		}
 	}
+}
+
+func writeToConnection(conn net.Conn, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for {
+		printPrompt()
+		input, done := takeInput()
+		if done {
+			break
+		}
+		_, err := conn.Write([]byte(input[:len(input)-1]))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func takeInput() (input string, done bool) {
+	input, err := reader.ReadString('\n')
+	if err == io.EOF {
+		done = true
+	} else if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		done = true
+	}
+	return
 }
 
 func printPrompt() {
